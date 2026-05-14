@@ -1,0 +1,24 @@
+{
+  "dependencies": {
+    "@blocks-network/sdk": "latest",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "tsx": "^4.19.4",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "name": "kiterae_flat_design_agent",
+  "private": true,
+  "scripts": {
+    "check": "blocks check",
+    "start": "blocks run",
+    "trigger": "tsx trigger.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module",
+  "version": "1.0.0"
+}

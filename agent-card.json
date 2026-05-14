@@ -1,0 +1,181 @@
+{
+  "identity": {
+    "agentName": "kiterae_flat_design_agent",
+    "displayName": "Kiterae Flat Design Agent",
+    "description": "Turns a text brief or reference image into three varied flat website design directions with generated preview images.",
+    "version": "1.0.0",
+    "provider": {
+      "organization": "kiterae"
+    }
+  },
+  "capabilities": {
+    "taskKinds": [
+      "request"
+    ]
+  },
+  "io": {
+    "inputs": [
+      {
+        "id": "request",
+        "description": "Website design brief and optional remote image reference.",
+        "contentType": "application/json",
+        "required": true,
+        "example": {
+          "direction": "A website for a small ceramic lighting studio launching a new collection inspired by moonlight.",
+          "designDirection": "Editorial, tactile, premium, with enough whitespace to feel calm.",
+          "brandName": "Luma Clay",
+          "siteType": "product launch website",
+          "audience": "Interior designers and design-aware homeowners",
+          "requiredElements": [
+            "hero",
+            "collection grid",
+            "materials story",
+            "email capture"
+          ],
+          "avoid": [
+            "generic luxury gold",
+            "overly soft beige palette"
+          ],
+          "imageUrl": "",
+          "imageSize": "1536x1024",
+          "imageQuality": "medium"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "direction": {
+              "type": "string",
+              "title": "Text Direction",
+              "default": "A website for a small ceramic lighting studio launching a new collection inspired by moonlight."
+            },
+            "designDirection": {
+              "type": "string",
+              "title": "Design Direction",
+              "default": "Editorial, tactile, premium, with enough whitespace to feel calm."
+            },
+            "brandName": {
+              "type": "string",
+              "title": "Brand Name",
+              "default": "Luma Clay"
+            },
+            "productName": {
+              "type": "string",
+              "title": "Product Name"
+            },
+            "siteType": {
+              "type": "string",
+              "title": "Site Type",
+              "default": "product launch website"
+            },
+            "audience": {
+              "type": "string",
+              "title": "Audience",
+              "default": "Interior designers and design-aware homeowners"
+            },
+            "requiredElements": {
+              "type": "array",
+              "title": "Required Elements",
+              "items": {
+                "type": "string"
+              }
+            },
+            "avoid": {
+              "type": "array",
+              "title": "Avoid",
+              "items": {
+                "type": "string"
+              }
+            },
+            "imageUrl": {
+              "type": "string",
+              "title": "Reference Image URL"
+            },
+            "imageDataUrl": {
+              "type": "string",
+              "title": "Reference Image Data URL"
+            },
+            "imageSize": {
+              "type": "string",
+              "title": "Preview Image Size",
+              "enum": [
+                "1024x1024",
+                "1024x1536",
+                "1536x1024"
+              ],
+              "default": "1536x1024"
+            },
+            "imageQuality": {
+              "type": "string",
+              "title": "Preview Image Quality",
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "auto"
+              ],
+              "default": "medium"
+            }
+          }
+        }
+      },
+      {
+        "id": "reference_image",
+        "description": "Optional uploaded reference image to interpret as design direction.",
+        "contentType": "image/png",
+        "required": false,
+        "accept": [
+          "image/png",
+          "image/jpeg",
+          "image/webp",
+          "image/gif",
+          "image/avif"
+        ],
+        "maxSizeBytes": 10485760
+      }
+    ],
+    "outputs": [
+      {
+        "id": "design_spec",
+        "description": "Structured brief summary, design directions, prompts, and generated image metadata.",
+        "contentType": "application/json",
+        "guaranteed": true
+      },
+      {
+        "id": "restrained_preview",
+        "description": "Generated preview image for the restrained design direction.",
+        "contentType": "image/png",
+        "guaranteed": true
+      },
+      {
+        "id": "direct_preview",
+        "description": "Generated preview image for the direct design direction.",
+        "contentType": "image/png",
+        "guaranteed": true
+      },
+      {
+        "id": "unexpected_preview",
+        "description": "Generated preview image for the unexpected design direction.",
+        "contentType": "image/png",
+        "guaranteed": true
+      }
+    ]
+  },
+  "skills": [
+    {
+      "id": "flat_website_design_variants",
+      "name": "Flat Website Design Variants",
+      "description": "Creates Restrained, Direct, and Unexpected flat website design concepts from a text brief or image reference, then generates a preview image for each.",
+      "examples": [
+        "Design a website for an AI-native garden planning app. Make it useful, calm, slightly technical, and not whimsical.",
+        "Use the uploaded packaging image as visual direction for a landing page aimed at boutique retailers."
+      ]
+    }
+  ],
+  "runtime": {
+    "handler": "./handler.ts",
+    "handlerExport": "default",
+    "concurrency": 2,
+    "expectedInstances": 1,
+    "maxRunningTimeSec": 300
+  }
+}
