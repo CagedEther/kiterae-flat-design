@@ -1,12 +1,12 @@
 # Kiterae Flat Design Agent
 
-Blocks agent that turns a text direction or reference image into three flat website design concepts:
+Blocks agent that turns a text direction or reference image into three fundamentally different flat website design languages:
 
 - Restrained: near-monochrome Swiss/Bauhaus reduction where typography carries the page.
 - Direct: literal, specific interpretation of the brief without generic category tropes.
-- Unexpected: one implied word or mood pushed into a bolder palette and unconventional layout.
+- Unexpected: one implied word or mood pushed into a genuinely different visual grammar. By default this can move into a playful pop-brutalist, sticker-book, chunky educational lane with thick black outlines, candy accents, cream dotted paper, and cartoon-like flat hero art.
 
-Each concept is sent through OpenAI image generation and returned as a PNG artifact, plus a structured JSON spec with prompts and handoff notes.
+Each concept is sent through OpenAI image generation and returned as a PNG artifact, plus a structured JSON spec and a Markdown CSS/site guidance handoff.
 
 ## Inputs
 
@@ -21,6 +21,8 @@ Useful request fields:
 - `audience`
 - `requiredElements`
 - `avoid`
+- `variationStrength`: `moderate`, `strong`, or `extreme`.
+- `unexpectedStyleHint`: optional style lane for the Unexpected concept.
 - `imageUrl` / `imageDataUrl`
 - `imageSize`: `1024x1024`, `1024x1536`, or `1536x1024`.
 - `imageQuality`: `low`, `medium`, `high`, or `auto`.
@@ -53,7 +55,7 @@ In another terminal, submit the sample task:
 npm run trigger
 ```
 
-The trigger saves returned artifacts into `artifacts/`.
+The trigger saves returned artifacts into `artifacts/`, including `flat-design-concepts.json`, `site-design-guidance.md`, and three preview PNGs.
 
 ## Railway
 

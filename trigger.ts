@@ -22,6 +22,8 @@ async function main() {
     audience: 'Interior designers and design-aware homeowners',
     requiredElements: ['hero', 'collection grid', 'materials story', 'email capture'],
     avoid: ['generic luxury gold', 'soft beige monoculture'],
+    variationStrength: 'strong',
+    unexpectedStyleHint: 'Playful pop-brutalist educational site with thick black outlines, sticker badges, candy accents, cream dotted paper, chunky type, and cartoon-like flat hero art.',
     imageSize: '1536x1024',
     imageQuality: 'medium',
   };

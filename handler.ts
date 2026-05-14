@@ -11,6 +11,8 @@ type DesignRequest = {
   audience?: string;
   requiredElements?: string[] | string;
   avoid?: string[] | string;
+  variationStrength?: string;
+  unexpectedStyleHint?: string;
   imageUrl?: string;
   imageDataUrl?: string;
   imageSize?: string;
@@ -27,6 +29,11 @@ type FlatDesign = {
   mode: LensMode;
   title: string;
   concept: string;
+  designLanguage: {
+    name: string;
+    summary: string;
+    differentiators: string[];
+  };
   layout: string;
   palette: {
     background: string;
@@ -38,6 +45,16 @@ type FlatDesign = {
   typography: string;
   interactionMood: string;
   components: string[];
+  cssGuidance: {
+    cssVariables: Array<{
+      name: string;
+      value: string;
+      purpose: string;
+    }>;
+    layoutRules: string[];
+    componentRules: string[];
+    responsiveRules: string[];
+  };
   handoffNotes: string[];
   imagePrompt: string;
 };
@@ -80,11 +97,13 @@ const DESIGN_SCHEMA = {
           'mode',
           'title',
           'concept',
+          'designLanguage',
           'layout',
           'palette',
           'typography',
           'interactionMood',
           'components',
+          'cssGuidance',
           'handoffNotes',
           'imagePrompt',
         ],
@@ -92,6 +111,19 @@ const DESIGN_SCHEMA = {
           mode: { type: 'string', enum: ['Restrained', 'Direct', 'Unexpected'] },
           title: { type: 'string' },
           concept: { type: 'string' },
+          designLanguage: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['name', 'summary', 'differentiators'],
+            properties: {
+              name: { type: 'string' },
+              summary: { type: 'string' },
+              differentiators: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+            },
+          },
           layout: { type: 'string' },
           palette: {
             type: 'object',
@@ -110,6 +142,38 @@ const DESIGN_SCHEMA = {
           components: {
             type: 'array',
             items: { type: 'string' },
+          },
+          cssGuidance: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['cssVariables', 'layoutRules', 'componentRules', 'responsiveRules'],
+            properties: {
+              cssVariables: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  additionalProperties: false,
+                  required: ['name', 'value', 'purpose'],
+                  properties: {
+                    name: { type: 'string' },
+                    value: { type: 'string' },
+                    purpose: { type: 'string' },
+                  },
+                },
+              },
+              layoutRules: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+              componentRules: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+              responsiveRules: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+            },
           },
           handoffNotes: {
             type: 'array',
@@ -184,6 +248,12 @@ export default async function handler(
         fileName: 'flat-design-concepts.json',
         data: JSON.stringify(report, null, 2),
         mimeType: 'application/json',
+      },
+      {
+        outputId: 'site_guidance',
+        fileName: 'site-design-guidance.md',
+        data: buildSiteGuidanceMarkdown(report),
+        mimeType: 'text/markdown',
       },
       ...imageArtifacts,
     ],
@@ -271,6 +341,8 @@ function mergeRequest(target: DesignRequest, source: Record<string, unknown> | D
     'audience',
     'requiredElements',
     'avoid',
+    'variationStrength',
+    'unexpectedStyleHint',
     'imageUrl',
     'imageDataUrl',
     'imageSize',
@@ -338,11 +410,15 @@ async function createDesignSpec(
             text: [
               'You are a senior web art director creating flat website design concepts.',
               'Return exactly three concepts in this order: Restrained, Direct, Unexpected.',
-              'Restrained: near-monochrome, Swiss/Bauhaus reduction, typography does most of the work, quietest useful reading.',
-              'Direct: literal interpretation of the brief with specificity and conviction, no generic category clichés.',
-              'Unexpected: choose one word or implied mood and push it into a bolder palette and unconventional layout.',
+              'The three concepts must be fundamentally different design languages, not siblings with small palette/layout changes.',
+              'Each concept needs a named design language, visual grammar, CSS tokens, layout rules, component rules, responsive rules, and image prompt.',
+              'Restrained: near-monochrome Swiss/Bauhaus/editorial reduction, hard grid, severe type hierarchy, minimal imagery, quietest useful reading.',
+              'Direct: literal interpretation of the brief with specificity and conviction; build the clearest product/content experience for the actual audience, not generic category clichés.',
+              'Unexpected: pick one word or implied mood and push it into a genuinely different visual grammar. Prefer playful pop-brutalist, sticker-book, chunky educational, illustrated, or poster-like systems when the brief permits.',
+              'For Unexpected, a strong valid lane is: cream paper or dotted background, huge friendly black headline type, thick black outlines, offset rounded panels, hot pink/yellow/blue/mint accents, pill stickers, cartoon-like hero object, dark contrast bands, and joyful no-jargon energy. Do not copy any specific brand, but capture that level of boldness and difference.',
               'Honor explicit design direction, hard constraints, audience, and supplied reference imagery.',
-              'These are flat website designs intended to become fleshed-out websites, so focus on layout, palette, typography, components, and implementation handoff notes.',
+              'If the user asks for restraint or forbids playful styles, Unexpected should still be structurally different but should choose a compatible provocation.',
+              'These are flat website designs intended to become fleshed-out websites, so focus on layout, palette, typography, components, CSS/site guidance, and implementation handoff notes.',
             ].join(' '),
           },
         ],
@@ -379,6 +455,8 @@ function buildDesignBrief(request: DesignRequest, referenceImage?: ReferenceImag
     `Audience: ${request.audience || '(infer from the brief)'}`,
     `Required elements: ${formatList(request.requiredElements)}`,
     `Avoid: ${formatList(request.avoid)}`,
+    `Variation strength: ${request.variationStrength || 'strong'}`,
+    `Unexpected style hint: ${request.unexpectedStyleHint || 'playful pop-brutalist educational site with thick black outlines, sticker badges, candy accents, cream dotted paper, chunky type, and cartoon-like flat hero art'}`,
     `Reference image: ${referenceImage ? `provided as ${referenceImage.source}` : 'not provided'}`,
   ];
 
@@ -395,12 +473,74 @@ function buildImagePrompt(design: FlatDesign, request: DesignRequest): string {
     `Design mode: ${design.mode}.`,
     `Title: ${design.title}.`,
     `Concept: ${design.concept}.`,
+    `Design language: ${design.designLanguage.name} — ${design.designLanguage.summary}.`,
+    `Hard differentiators: ${design.designLanguage.differentiators.join('; ')}.`,
     `Layout: ${design.layout}.`,
     `Palette: background ${design.palette.background}, text ${design.palette.text}, primary ${design.palette.primary}, secondary ${design.palette.secondary}, accent ${design.palette.accent}.`,
     `Typography: ${design.typography}.`,
     `Components to show: ${design.components.join(', ')}.`,
+    `CSS/layout cues: ${design.cssGuidance.layoutRules.join('; ')}.`,
+    `Component cues: ${design.cssGuidance.componentRules.join('; ')}.`,
     `Mood: ${design.interactionMood}.`,
+    design.mode === 'Unexpected'
+      ? 'For this Unexpected version, make the visual grammar obviously unlike a restrained/editorial or normal SaaS/product page: thick outlines, sticker badges, offset compositions, bright accents, oversized friendly type, and a playful illustration or symbolic flat mascot/object are allowed when suitable.'
+      : '',
     `Specific art direction: ${design.imagePrompt}`,
+  ].filter(Boolean).join('\n');
+}
+
+function buildSiteGuidanceMarkdown(report: DesignSpec & {
+  generatedAt: string;
+  models: { text: string; image: string };
+  generatedImages: GeneratedImage[];
+}): string {
+  const sections = report.designs.map((design) => {
+    const variables = design.cssGuidance.cssVariables
+      .map((item) => `  ${item.name}: ${item.value}; /* ${item.purpose} */`)
+      .join('\n');
+    const layoutRules = design.cssGuidance.layoutRules.map((rule) => `- ${rule}`).join('\n');
+    const componentRules = design.cssGuidance.componentRules.map((rule) => `- ${rule}`).join('\n');
+    const responsiveRules = design.cssGuidance.responsiveRules.map((rule) => `- ${rule}`).join('\n');
+    const handoffNotes = design.handoffNotes.map((note) => `- ${note}`).join('\n');
+
+    return [
+      `## ${design.mode}: ${design.title}`,
+      '',
+      `**Design language:** ${design.designLanguage.name}`,
+      '',
+      design.designLanguage.summary,
+      '',
+      '**Differentiators**',
+      design.designLanguage.differentiators.map((item) => `- ${item}`).join('\n'),
+      '',
+      '**CSS tokens**',
+      '',
+      '```css',
+      `:root {\n${variables}\n}`,
+      '```',
+      '',
+      '**Layout rules**',
+      layoutRules,
+      '',
+      '**Component rules**',
+      componentRules,
+      '',
+      '**Responsive rules**',
+      responsiveRules,
+      '',
+      '**Handoff notes**',
+      handoffNotes,
+    ].join('\n');
+  });
+
+  return [
+    '# Flat Website Design Guidance',
+    '',
+    `Generated: ${report.generatedAt}`,
+    `Brief: ${report.briefSummary}`,
+    '',
+    ...sections,
+    '',
   ].join('\n');
 }
 
