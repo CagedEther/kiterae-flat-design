@@ -3,3 +3,4 @@ pip.conf
 .npmrc
 node_modules
 artifacts
+artifacts-*
