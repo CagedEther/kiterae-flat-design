@@ -1,9 +1,9 @@
 {
   "identity": {
     "agentName": "kiterae_flat_design_agent",
-    "displayName": "Kiterae Flat Design Agent",
-    "description": "Turns a text brief or reference image into three fundamentally different flat website design languages with generated preview images and CSS/site guidance.",
-    "version": "1.1.0",
+    "displayName": "Kiterae Site Design Agent",
+    "description": "Turns a text brief or reference image into Direct Minimalist, Maximalist, and Copy-Led Style website directions with generated preview images and CSS/site guidance.",
+    "version": "1.2.0",
     "provider": {
       "organization": "kiterae"
     }
@@ -37,7 +37,7 @@
             "overly soft beige palette"
           ],
           "variationStrength": "strong",
-          "unexpectedStyleHint": "Playful pop-brutalist educational site with thick black outlines, sticker badges, candy accents, cream dotted paper, chunky type, and cartoon-like flat hero art.",
+          "thirdStyleHint": "Let the handmade materials copy decide the third style; expose/reveal is welcome if the process details carry the story.",
           "imageUrl": "",
           "imageSize": "1536x1024",
           "imageQuality": "medium"
@@ -98,10 +98,15 @@
               ],
               "default": "strong"
             },
+            "thirdStyleHint": {
+              "type": "string",
+              "title": "Third Style Hint",
+              "default": "Let the copy decide the third style; use this only as a light creative bias."
+            },
             "unexpectedStyleHint": {
               "type": "string",
-              "title": "Unexpected Style Hint",
-              "default": "Playful pop-brutalist educational site with thick black outlines, sticker badges, candy accents, cream dotted paper, chunky type, and cartoon-like flat hero art."
+              "title": "Legacy Third Style Hint",
+              "description": "Backwards-compatible alias for Third Style Hint."
             },
             "imageUrl": {
               "type": "string",
@@ -164,20 +169,20 @@
         "guaranteed": true
       },
       {
-        "id": "restrained_preview",
-        "description": "Generated preview image for the restrained design direction.",
+        "id": "direct_minimalist_preview",
+        "description": "Generated preview image for the Direct Minimalist design direction.",
         "contentType": "image/png",
         "guaranteed": true
       },
       {
-        "id": "direct_preview",
-        "description": "Generated preview image for the direct design direction.",
+        "id": "maximalist_preview",
+        "description": "Generated preview image for the Maximalist design direction.",
         "contentType": "image/png",
         "guaranteed": true
       },
       {
-        "id": "unexpected_preview",
-        "description": "Generated preview image for the unexpected design direction.",
+        "id": "copy_led_style_preview",
+        "description": "Generated preview image for the Copy-Led Style design direction.",
         "contentType": "image/png",
         "guaranteed": true
       }
@@ -185,11 +190,11 @@
   },
   "skills": [
     {
-      "id": "flat_website_design_variants",
-      "name": "Flat Website Design Variants",
-      "description": "Creates Restrained, Direct, and Unexpected flat website design languages from a text brief or image reference, then generates a preview image and CSS/site guidance for each.",
+      "id": "website_design_variants",
+      "name": "Website Design Variants",
+      "description": "Creates Direct Minimalist, Maximalist, and Copy-Led Style website design languages from a text brief or image reference, then generates a preview image and CSS/site guidance for each.",
       "examples": [
-        "Design a website for an AI-native garden planning app. Make it useful and calm, but push the Unexpected version into a playful pop-brutalist educational site.",
+        "Design a website for an AI-native garden planning app using the three-direction model: direct minimalist, maximalist, and one copy-led style choice.",
         "Use the uploaded packaging image as visual direction for a landing page aimed at boutique retailers."
       ]
     }

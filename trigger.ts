@@ -23,7 +23,7 @@ async function main() {
     requiredElements: ['hero', 'collection grid', 'materials story', 'email capture'],
     avoid: ['generic luxury gold', 'soft beige monoculture'],
     variationStrength: 'strong',
-    unexpectedStyleHint: 'Playful pop-brutalist educational site with thick black outlines, sticker badges, candy accents, cream dotted paper, chunky type, and cartoon-like flat hero art.',
+    thirdStyleHint: 'Let the handmade materials copy decide the third style; expose/reveal is welcome if the process details carry the story.',
     imageSize: '1536x1024',
     imageQuality: 'medium',
   };

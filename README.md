@@ -1,10 +1,10 @@
-# Kiterae Flat Design Agent
+# Kiterae Site Design Agent
 
-Blocks agent that turns a text direction or reference image into three fundamentally different flat website design languages:
+Blocks agent that turns a text direction or reference image into three fundamentally different website design languages:
 
-- Restrained: near-monochrome Swiss/Bauhaus reduction where typography carries the page.
-- Direct: literal, specific interpretation of the brief without generic category tropes.
-- Unexpected: one implied word or mood pushed into a genuinely different visual grammar. By default this can move into a playful pop-brutalist, sticker-book, chunky educational lane with thick black outlines, candy accents, cream dotted paper, and cartoon-like flat hero art.
+- Direct Minimalist: the most direct, clearest, least-decorated expression of the brief.
+- Maximalist: an abundant, expressive, high-density interpretation of the same brief.
+- Copy-Led Style: a third style chosen from the copy's natural creative direction, such as editorial, highly visual/immersive, brutalist, Swiss/international, SaaS/product UI, experimental/art-directed, retro/nostalgic, or expose/reveal.
 
 Each concept is sent through OpenAI image generation and returned as a PNG artifact, plus a structured JSON spec and a Markdown CSS/site guidance handoff.
 
@@ -22,7 +22,8 @@ Useful request fields:
 - `requiredElements`
 - `avoid`
 - `variationStrength`: `moderate`, `strong`, or `extreme`.
-- `unexpectedStyleHint`: optional style lane for the Unexpected concept.
+- `thirdStyleHint`: optional bias for the Copy-Led Style concept.
+- `unexpectedStyleHint`: backwards-compatible alias for `thirdStyleHint`.
 - `imageUrl` / `imageDataUrl`
 - `imageSize`: `1024x1024`, `1024x1536`, or `1536x1024`.
 - `imageQuality`: `low`, `medium`, `high`, or `auto`.
@@ -55,7 +56,7 @@ In another terminal, submit the sample task:
 npm run trigger
 ```
 
-The trigger saves returned artifacts into `artifacts/`, including `flat-design-concepts.json`, `site-design-guidance.md`, and three preview PNGs.
+The trigger saves returned artifacts into `artifacts/`, including `site-design-concepts.json`, `site-design-guidance.md`, and three preview PNGs.
 
 ## Railway
 
