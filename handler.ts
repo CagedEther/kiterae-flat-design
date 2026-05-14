@@ -440,8 +440,11 @@ async function createDesignSpec(
 
   const text = extractResponseText(response);
   const parsed = JSON.parse(text) as DesignSpec;
+  const completedDesigns = completeDesigns(parsed.designs ?? [], request);
+
   return {
     ...parsed,
+    designs: completedDesigns,
     inputMode: referenceImage && request.direction ? 'text+image' : referenceImage ? 'image' : 'text',
   };
 }
@@ -656,6 +659,197 @@ function orderDesigns(designs: FlatDesign[]): FlatDesign[] {
   }
 
   throw new Error('Expected three design concepts in order: Restrained, Direct, Unexpected.');
+}
+
+function completeDesigns(designs: FlatDesign[], request: DesignRequest): FlatDesign[] {
+  const order: LensMode[] = ['Restrained', 'Direct', 'Unexpected'];
+  const canonical = designs.map((design, index) => ({
+    ...design,
+    mode: order[index] ?? design.mode,
+  }));
+  const byMode = new Map<LensMode, FlatDesign>();
+
+  for (const design of canonical) {
+    if (order.includes(design.mode)) byMode.set(design.mode, design);
+  }
+
+  return order.map((mode) => byMode.get(mode) ?? fallbackDesign(mode, request));
+}
+
+function fallbackDesign(mode: LensMode, request: DesignRequest): FlatDesign {
+  const subject = request.brandName || request.productName || 'the product';
+  const context = request.siteType || 'website';
+
+  if (mode === 'Restrained') {
+    return {
+      mode,
+      title: 'Signal Ledger',
+      concept: `A quiet editorial interpretation of ${subject}, using precision, spacing, and terse proof points to make ${context} feel trustworthy.`,
+      designLanguage: {
+        name: 'Swiss Signal Editorial',
+        summary: 'Near-monochrome technical editorial system with thin rules, a hard grid, small latency annotations, and restrained diagrammatic marks.',
+        differentiators: [
+          'Near-monochrome palette',
+          'Hard alignment and thin rules',
+          'Typography-led hierarchy',
+          'Minimal diagrammatic stream marks',
+        ],
+      },
+      layout: 'A strict two-column hero, compact proof strip, editorial API block, and stacked evidence sections separated by rules.',
+      palette: {
+        background: '#F7F7F2',
+        text: '#111111',
+        primary: '#111111',
+        secondary: '#7A7A72',
+        accent: '#D8D4CA',
+      },
+      typography: 'Condensed grotesk for headings, neutral mono for metrics and API details, quiet sans for body copy.',
+      interactionMood: 'Calm, precise, low-latency, and serious.',
+      components: ['typographic hero', 'latency proof strip', 'thin-rule API panel', 'metric table', 'use-case index'],
+      cssGuidance: {
+        cssVariables: [
+          { name: '--bg', value: '#F7F7F2', purpose: 'Warm technical page background' },
+          { name: '--text', value: '#111111', purpose: 'Primary type and rules' },
+          { name: '--muted', value: '#7A7A72', purpose: 'Secondary annotations' },
+          { name: '--line', value: '#D8D4CA', purpose: 'Hairline separators' },
+        ],
+        layoutRules: [
+          'Use a strict 12-column grid with no decorative overlap',
+          'Keep metrics small but prominent through alignment',
+          'Separate sections with thin horizontal rules',
+        ],
+        componentRules: [
+          'Use border-only cards and mono metric labels',
+          'Keep buttons rectangular and quiet',
+          'Represent streams as thin lines or simple ticks, not glowing networks',
+        ],
+        responsiveRules: [
+          'Collapse to a single editorial column on mobile',
+          'Preserve metric readability with horizontal grouping before stacking',
+        ],
+      },
+      handoffNotes: [
+        'Let proof and precision carry the experience.',
+        'Avoid decorative real-time clichés.',
+        'This direction is best for credibility and enterprise trust.',
+      ],
+      imagePrompt: 'A restrained Swiss editorial technical landing page for realtime stream interactivity, near-monochrome, strict grid, thin rules, mono metrics, quiet API panel, no gradients.',
+    };
+  }
+
+  if (mode === 'Direct') {
+    return {
+      mode,
+      title: 'Every Stream, Live',
+      concept: `A literal product-led page for ${subject}, showing how teams add realtime controls, reactions, data, and collaboration into live streams.`,
+      designLanguage: {
+        name: 'Realtime Product Console',
+        summary: 'Practical developer-infrastructure landing page built around interface proof, API clarity, latency metrics, and use-case modules.',
+        differentiators: [
+          'Product UI and code shown together',
+          'Metric-forward reliability proof',
+          'Developer API section is a first-class page object',
+          'Clear use-case cards for video, audio, data, and collaboration',
+        ],
+      },
+      layout: 'Hero with live stream console mock, proof metrics underneath, API/code section, use-case grid, and conversion CTA.',
+      palette: {
+        background: '#FFFFFF',
+        text: '#0D1117',
+        primary: '#0057FF',
+        secondary: '#5A6678',
+        accent: '#00C2A8',
+      },
+      typography: 'Clear product sans for headings and body, developer mono for code blocks and latency numbers.',
+      interactionMood: 'Fast, concrete, capable, and production-ready.',
+      components: ['stream console hero', 'latency badges', 'API code block', 'use-case cards', 'reliability metric strip'],
+      cssGuidance: {
+        cssVariables: [
+          { name: '--bg', value: '#FFFFFF', purpose: 'Clean product background' },
+          { name: '--text', value: '#0D1117', purpose: 'Primary copy' },
+          { name: '--primary', value: '#0057FF', purpose: 'Primary actions and highlights' },
+          { name: '--accent', value: '#00C2A8', purpose: 'Live status and interactivity cues' },
+        ],
+        layoutRules: [
+          'Anchor the page with a real product interface composition',
+          'Place latency/reliability metrics directly near the hero claim',
+          'Use repeatable card grids for use cases',
+        ],
+        componentRules: [
+          'Buttons should be practical and verb-led',
+          'API snippets need readable mono type and syntax color accents',
+          'Use live-status dots, sliders, reactions, and chat overlays as specific interactivity proof',
+        ],
+        responsiveRules: [
+          'Stack product UI below copy on mobile',
+          'Keep code snippets horizontally scrollable rather than squeezed',
+        ],
+      },
+      handoffNotes: [
+        'This is the most straightforward conversion direction.',
+        'Keep the page specific to realtime streams, not generic dev tools.',
+        'Each visual module should explain a feature or proof point.',
+      ],
+      imagePrompt: 'A concrete developer infrastructure landing page for realtime interactivity in streams, product console mockup, code block, latency badges, clean white background, blue and teal accents.',
+    };
+  }
+
+  return {
+    mode,
+    title: 'Live Signal Fair',
+    concept: `A bold poster-like system for ${subject}, turning realtime stream interactivity into chunky signal modules, stickers, and broadcast-control-room energy.`,
+    designLanguage: {
+      name: 'Pop-Brutalist Broadcast Poster',
+      summary: 'Playful but credible realtime infrastructure page with cream dotted paper, thick outlines, hot signal colors, sticker badges, dark ops bands, and flat illustrated stream objects.',
+      differentiators: [
+        'Cream dotted interface-paper field',
+        'Thick black outlines and offset panels',
+        'Sticker badges for live, latency, API, and reactions',
+        'Dark navy operations band with chunky stream modules',
+        'Flat illustrated signal tower, switcher, or stream control object',
+      ],
+    },
+    layout: 'Poster hero with oversized claim and illustrated stream device, dark operations band, chunky feature cards, code sticker panel, and bright CTA footer.',
+    palette: {
+      background: '#F8F0DB',
+      text: '#101321',
+      primary: '#FF2D8A',
+      secondary: '#10203F',
+      accent: '#FFD21F',
+    },
+    typography: 'Chunky friendly display type for headlines, rounded sans for copy, mono for API stickers.',
+    interactionMood: 'Alive, immediate, joyful, and technically confident.',
+    components: ['sticker hero badge', 'outlined stream card', 'dark ops band', 'latency sticker', 'cartoon signal object', 'chunky API panel'],
+    cssGuidance: {
+      cssVariables: [
+        { name: '--bg', value: '#F8F0DB', purpose: 'Cream dotted paper background' },
+        { name: '--ink', value: '#101321', purpose: 'Text and thick outlines' },
+        { name: '--pink', value: '#FF2D8A', purpose: 'Primary sticker accent' },
+        { name: '--yellow', value: '#FFD21F', purpose: 'Hero highlight panels' },
+        { name: '--navy', value: '#10203F', purpose: 'Dark operations band' },
+      ],
+      layoutRules: [
+        'Use staggered poster composition with oversized headline type',
+        'Add one dark navy operations band to contrast the cream field',
+        'Let panels overlap slightly like stickers on a control-room wall',
+      ],
+      componentRules: [
+        'Cards need thick black borders and rounded corners',
+        'Use pill badges for live, latency, API, reactions, and sync',
+        'Illustrations should be flat and symbolic, not photorealistic',
+      ],
+      responsiveRules: [
+        'Stack poster panels but preserve sticker offsets on mobile',
+        'Keep the hero object large enough to preserve personality',
+      ],
+    },
+    handoffNotes: [
+      'This is the boldest memory-building direction.',
+      'Keep the engineering proof visible so it does not become childish.',
+      'Use short, concrete copy and let the visual system carry momentum.',
+    ],
+    imagePrompt: request.unexpectedStyleHint || 'Playful pop-brutalist broadcast-control-room landing page for realtime stream interactivity with cream dotted paper, thick black outlines, sticker badges, dark navy band, hot signal colors, and flat illustrated stream hardware.',
+  };
 }
 
 function hasBriefMaterial(request: DesignRequest, referenceImage?: ReferenceImage): boolean {
