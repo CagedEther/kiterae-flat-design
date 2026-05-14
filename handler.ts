@@ -634,11 +634,28 @@ function extractResponseText(response: Record<string, unknown>): string {
 
 function orderDesigns(designs: FlatDesign[]): FlatDesign[] {
   const order: LensMode[] = ['Restrained', 'Direct', 'Unexpected'];
-  return order.map((mode) => {
-    const design = designs.find((item) => item.mode === mode);
-    if (!design) throw new Error(`Missing ${mode} design concept.`);
-    return design;
-  });
+  const byMode = new Map<string, FlatDesign>();
+
+  for (const design of designs) {
+    byMode.set(design.mode.toLowerCase(), design);
+  }
+
+  const exact = order.map((mode) => byMode.get(mode.toLowerCase()));
+  if (exact.every(Boolean)) {
+    return exact.map((design, index) => ({
+      ...design!,
+      mode: order[index],
+    }));
+  }
+
+  if (designs.length >= 3) {
+    return order.map((mode, index) => ({
+      ...designs[index],
+      mode,
+    }));
+  }
+
+  throw new Error('Expected three design concepts in order: Restrained, Direct, Unexpected.');
 }
 
 function hasBriefMaterial(request: DesignRequest, referenceImage?: ReferenceImage): boolean {
