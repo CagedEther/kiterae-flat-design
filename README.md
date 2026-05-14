@@ -8,6 +8,8 @@ Blocks agent that turns a text direction or reference image into three fundament
 
 Each concept is sent through OpenAI image generation and returned as a PNG artifact, plus a structured JSON spec and a Markdown CSS/site guidance handoff.
 
+All three directions share one global composition rule: content placement should feel editorial. The page should read like an authored product feature or magazine spread, using headline/dek hierarchy, chapter labels, captions, sidebars, pull quotes, proof callouts, and paced story bands instead of a generic card grid or dashboard shell.
+
 ## Inputs
 
 The agent accepts a JSON `request` part and an optional uploaded `reference_image` part. You can also provide `imageUrl` or `imageDataUrl` inside the JSON request.

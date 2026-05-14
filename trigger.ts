@@ -15,15 +15,15 @@ async function main() {
   await mkdir(OUTPUT_DIR, { recursive: true });
 
   const request = {
-    direction: 'A website for a small ceramic lighting studio launching a moonlit collection.',
-    designDirection: 'Editorial, tactile, premium, calm, and specific to handmade materials.',
-    brandName: 'Luma Clay',
-    siteType: 'product launch website',
-    audience: 'Interior designers and design-aware homeowners',
-    requiredElements: ['hero', 'collection grid', 'materials story', 'email capture'],
-    avoid: ['generic luxury gold', 'soft beige monoculture'],
+    direction: "A site for a real-time software provider who offers 'Real-time interactivity for every stream'.",
+    designDirection: 'Make content placement editorial in every design: headline/dek, narrative sections, proof pullouts, captions, sidebars, and paced story bands rather than generic dashboard grids.',
+    brandName: 'Signalstream',
+    siteType: 'B2B software landing page',
+    audience: 'Streaming product teams, developer platform leaders, and broadcast engineering buyers',
+    requiredElements: ['hero', 'latency proof', 'developer workflow', 'streaming use cases', 'CTA'],
+    avoid: ['generic dashboard collage', 'AI gradient background', 'stock server room imagery'],
     variationStrength: 'strong',
-    thirdStyleHint: 'Let the handmade materials copy decide the third style; expose/reveal is welcome if the process details carry the story.',
+    thirdStyleHint: 'Let the streaming and interactivity copy decide the third style, but keep the composition editorial.',
     imageSize: '1536x1024',
     imageQuality: 'medium',
   };

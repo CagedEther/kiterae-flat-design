@@ -100,6 +100,15 @@ const TEXT_MODEL = process.env.OPENAI_TEXT_MODEL ?? 'gpt-5.4-mini';
 const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? 'gpt-image-2';
 const DEFAULT_IMAGE_SIZE = '1536x1024';
 const DEFAULT_IMAGE_QUALITY = 'medium';
+const EDITORIAL_PLACEMENT_DIRECTIVE = [
+  'All three designs must use editorial content placement regardless of visual language.',
+  'Compose the site like a magazine feature, product story, or poster spread: headline/dek, narrative intro, chapter labels, pull quotes, proof callouts, sidebars, captions, paced sections, and strong section transitions.',
+  'Avoid making dashboards, evenly spaced card grids, or generic SaaS component stacks the primary page structure; those may appear only as supporting editorial modules.',
+].join(' ');
+const EDITORIAL_LAYOUT_RULES = [
+  'Use editorial content placement: headline/dek, narrative intro, chapter labels, proof pullouts, captions, sidebars, and paced story bands.',
+  'Avoid default dashboard/card-grid placement as the primary composition; cards and product UI panels should support the story flow.',
+];
 
 const DESIGN_SCHEMA = {
   type: 'object',
@@ -224,7 +233,7 @@ export default async function handler(
   ctx?.reportStatus('Creating three website design directions...');
   const spec = await createDesignSpec(request, referenceImage, ctx);
 
-  const orderedDesigns = orderDesigns(spec.designs);
+  const orderedDesigns = enforceEditorialPlacement(orderDesigns(spec.designs));
   const imageArtifacts = [];
   const generatedImages: GeneratedImage[] = [];
 
@@ -435,6 +444,7 @@ async function createDesignSpec(
               'Return exactly three concepts in this order: Direct Minimalist, Maximalist, Copy-Led Style.',
               'The three concepts must be fundamentally different design languages, not siblings with small palette/layout changes.',
               'Each concept needs a named design language, visual grammar, CSS tokens, layout rules, component rules, responsive rules, and image prompt.',
+              EDITORIAL_PLACEMENT_DIRECTIVE,
               'Direct Minimalist: the most direct, clearest, least-decorated expression of the brief. Use minimalism as a functional discipline: obvious navigation, concise hierarchy, direct copy placement, restrained color, strong whitespace, and only the imagery/components needed to sell the idea.',
               'Maximalist: an abundant, expressive, high-density interpretation of the same brief. Push color, pattern, scale shifts, layered modules, expressive type, rich imagery or illustration, and a stronger sense of spectacle while keeping the page usable and commercially coherent.',
               'Copy-Led Style: read the supplied copy and choose one distinct design style that the language naturally suggests. Choose from styles such as editorial, highly visual/immersive, brutalist, Swiss/international, luxury minimal, SaaS/product UI, experimental/art-directed, retro/nostalgic, or expose/reveal. Do not choose generic minimalism or maximalism for this third concept.',
@@ -484,6 +494,7 @@ function buildDesignBrief(request: DesignRequest, referenceImage?: ReferenceImag
     `Variation strength: ${request.variationStrength || 'strong'}`,
     `Copy-led third style hint: ${request.thirdStyleHint || request.unexpectedStyleHint || '(none supplied; choose the style from the copy)'}`,
     `Reference image: ${referenceImage ? `provided as ${referenceImage.source}` : 'not provided'}`,
+    `Global editorial placement rule: ${EDITORIAL_PLACEMENT_DIRECTIVE}`,
   ];
 
   return lines.join('\n');
@@ -501,6 +512,7 @@ function buildImagePrompt(design: FlatDesign, request: DesignRequest): string {
     `Concept: ${design.concept}.`,
     `Design language: ${design.designLanguage.name} — ${design.designLanguage.summary}.`,
     `Hard differentiators: ${design.designLanguage.differentiators.join('; ')}.`,
+    `Editorial placement constraint: ${EDITORIAL_PLACEMENT_DIRECTIVE}`,
     `Layout: ${design.layout}.`,
     `Palette: background ${design.palette.background}, text ${design.palette.text}, primary ${design.palette.primary}, secondary ${design.palette.secondary}, accent ${design.palette.accent}.`,
     `Typography: ${design.typography}.`,
@@ -517,6 +529,7 @@ function buildImagePrompt(design: FlatDesign, request: DesignRequest): string {
     design.mode === 'Copy-Led Style'
       ? 'For this Copy-Led Style version, make the selected design style unmistakable and connected to the copy. It must feel unlike the direct minimalist and maximalist versions.'
       : '',
+    'Content placement must be editorial: use magazine-style hierarchy, headline/dek, story sections, proof pullouts, captions, sidebars, and intentionally paced bands. Do not make a generic dashboard or evenly spaced card grid.',
     `Specific art direction: ${design.imagePrompt}`,
   ].filter(Boolean).join('\n');
 }
@@ -570,6 +583,10 @@ function buildSiteGuidanceMarkdown(report: DesignSpec & {
     '',
     `Generated: ${report.generatedAt}`,
     `Brief: ${report.briefSummary}`,
+    '',
+    '## Global Editorial Placement Rule',
+    '',
+    'Every concept uses editorial content placement even when the visual language changes. Build the page like an authored product feature: headline/dek, narrative intro, chapter labels, proof pullouts, captions, sidebars, paced story bands, and strong section transitions. Cards, dashboards, and product UI fragments should support the story rather than become the main page skeleton.',
     '',
     ...sections,
     '',
@@ -705,6 +722,75 @@ function completeDesigns(designs: FlatDesign[], request: DesignRequest): FlatDes
   return order.map((mode) => byMode.get(mode) ?? fallbackDesign(mode, request));
 }
 
+function enforceEditorialPlacement(designs: FlatDesign[]): FlatDesign[] {
+  return designs.map((design) => ({
+    ...design,
+    layout: withEditorialLayout(design.layout),
+    cssGuidance: {
+      ...design.cssGuidance,
+      layoutRules: withEditorialPlacementRules(design.cssGuidance.layoutRules),
+    },
+    handoffNotes: appendUnique(design.handoffNotes, [
+      'Keep content placement editorial even when the visual language changes.',
+      'Use cards, dashboards, or product UI fragments only as supporting editorial modules.',
+    ]),
+    imagePrompt: addSentenceOnce(
+      design.imagePrompt,
+      'Editorial content placement is mandatory: compose the page like a magazine or product feature with headline/dek, narrative sections, proof pullouts, captions, sidebars, and paced story bands.',
+    ),
+  }));
+}
+
+function withEditorialLayout(layout: string): string {
+  if (mentionsEditorialPlacement(layout)) return layout;
+
+  return `${layout} Content placement should follow an editorial sequence with headline/dek, narrative section pacing, proof pullouts, captions, and sidebars rather than a default dashboard or card grid.`;
+}
+
+function withEditorialPlacementRules(rules: string[]): string[] {
+  return uniqueStrings([...EDITORIAL_LAYOUT_RULES, ...rules]);
+}
+
+function mentionsEditorialPlacement(value: string): boolean {
+  const normalized = value.toLowerCase();
+
+  return [
+    'editorial',
+    'magazine',
+    'story spread',
+    'headline/dek',
+    'chapter',
+    'pull quote',
+    'sidebar',
+  ].some((term) => normalized.includes(term));
+}
+
+function addSentenceOnce(value: string, sentence: string): string {
+  return value.includes(sentence) ? value : `${value} ${sentence}`;
+}
+
+function appendUnique(values: string[], additions: string[]): string[] {
+  return uniqueStrings([...values, ...additions]);
+}
+
+function uniqueStrings(values: string[]): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+
+  for (const value of values) {
+    const normalized = value.trim();
+    if (!normalized) continue;
+
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) continue;
+
+    seen.add(key);
+    result.push(normalized);
+  }
+
+  return result;
+}
+
 function fallbackDesign(mode: LensMode, request: DesignRequest): FlatDesign {
   const subject = request.brandName || request.productName || 'the product';
   const context = request.siteType || 'website';
@@ -724,7 +810,7 @@ function fallbackDesign(mode: LensMode, request: DesignRequest): FlatDesign {
           'Plain proof points instead of ornamental modules',
         ],
       },
-      layout: 'A clean hero with one primary action, compact proof strip, essential content sections, focused feature blocks, and a quiet conversion footer.',
+      layout: 'A restrained editorial hero spread with one primary action, a margin proof sidebar, chaptered story sections, focused evidence blocks, one carefully placed product or process excerpt, and a quiet conversion footer.',
       palette: {
         background: '#FAFAF7',
         text: '#111111',
@@ -744,7 +830,10 @@ function fallbackDesign(mode: LensMode, request: DesignRequest): FlatDesign {
           { name: '--line', value: '#DEDED7', purpose: 'Subtle dividers' },
         ],
         layoutRules: [
-          'Use a simple grid with generous spacing and a narrow readable measure',
+          'Use a simple editorial grid with generous spacing, a narrow readable measure, and occasional wide proof moments',
+          'Lead with a headline/dek spread before product proof or feature detail',
+          'Use chapter labels, proof sidebars, and captions to pace the visitor through the argument',
+          'Treat product UI, code, or feature excerpts as editorial evidence rather than dashboard widgets',
           'Keep every section tied to a clear user decision or proof point',
           'Avoid decorative overlap and redundant cards',
         ],
@@ -763,7 +852,7 @@ function fallbackDesign(mode: LensMode, request: DesignRequest): FlatDesign {
         'Cut anything that does not explain, prove, or move the visitor forward.',
         'The design should feel edited, not empty.',
       ],
-      imagePrompt: `A direct minimalist ${context} for ${subject}, calm whitespace, restrained palette, clear hero, concise proof points, simple content sections, no decorative clutter.`,
+      imagePrompt: `A direct minimalist ${context} for ${subject}, calm whitespace, restrained palette, editorial headline/dek hero, concise proof sidebars, chaptered content sections, no decorative clutter.`,
     };
   }
 
@@ -782,7 +871,7 @@ function fallbackDesign(mode: LensMode, request: DesignRequest): FlatDesign {
           'A page rhythm that feels abundant without losing scanability',
         ],
       },
-      layout: 'A large kinetic hero, dense benefit wall, mixed-media story band, feature clusters, social proof collage, and high-contrast CTA finale.',
+      layout: 'A large kinetic editorial poster spread, dense benefit wall organized as story beats, mixed-media feature band, proof collage with pull quotes, chaptered feature clusters, and a high-contrast CTA finale.',
       palette: {
         background: '#FFF4D6',
         text: '#10121A',
@@ -802,9 +891,10 @@ function fallbackDesign(mode: LensMode, request: DesignRequest): FlatDesign {
           { name: '--accent', value: '#26B99A', purpose: 'Secondary highlights and badges' },
         ],
         layoutRules: [
-          'Use asymmetrical grids with controlled overlaps',
-          'Alternate dense content bands with simpler breathing sections',
-          'Let imagery, stats, quotes, and feature modules coexist in the hero and mid-page',
+          'Use asymmetrical editorial grids with controlled overlaps',
+          'Layer abundance around clear story beats, not random cards',
+          'Alternate dense magazine-like spreads with simpler breathing sections',
+          'Let imagery, stats, quotes, captions, and feature modules coexist in the hero and mid-page',
         ],
         componentRules: [
           'Use badges, ribbons, patterned panels, and expressive buttons',
@@ -821,7 +911,7 @@ function fallbackDesign(mode: LensMode, request: DesignRequest): FlatDesign {
         'Keep every decorative device attached to a content job.',
         'Audit mobile carefully so high density remains intentional.',
       ],
-      imagePrompt: `A maximalist ${context} for ${subject}, layered colorful website composition, expressive typography, dense feature modules, badges, rich imagery, strong commercial hierarchy.`,
+      imagePrompt: `A maximalist ${context} for ${subject}, layered colorful editorial website composition, expressive typography, dense story bands, badges, proof pullouts, rich imagery, strong commercial hierarchy.`,
     };
   }
 
@@ -877,7 +967,7 @@ function inferCopyLedStyle(request: DesignRequest): CopyLedFallbackStyle {
     return exposeRevealStyle();
   }
 
-  if (has('developer', 'api', 'platform', 'dashboard', 'saas', 'b2b', 'enterprise', 'workflow', 'operations', 'analytics', 'infrastructure', 'automation')) {
+  if (has('developer', 'api', 'platform', 'dashboard', 'saas', 'b2b', 'enterprise', 'workflow', 'operations', 'analytics', 'infrastructure', 'automation', 'software', 'real-time', 'realtime', 'stream', 'latency', 'interactive')) {
     return productUiStyle();
   }
 
@@ -961,7 +1051,7 @@ function immersiveVisualStyle(): CopyLedFallbackStyle {
       'Strong contrast between immersive scenes and precise product/content detail',
     ],
     concept: (subject, context) => `A highly visual ${context} for ${subject}, using immersive imagery, dramatic cropping, and concise overlay copy to make the visitor feel the subject before analyzing it.`,
-    layout: 'Full-bleed visual hero, caption-like proof line, large media sequence, detail panels, gallery strip, and quiet conversion close.',
+    layout: 'Full-bleed visual editorial hero, caption-like proof line, large media sequence paced like a photo essay, detail sidebars, gallery strip, and quiet conversion close.',
     palette: {
       background: '#101010',
       text: '#F7F2E8',
@@ -981,6 +1071,7 @@ function immersiveVisualStyle(): CopyLedFallbackStyle {
     ],
     layoutRules: [
       'Use full-width media bands instead of small decorative thumbnails',
+      'Pace the page like a visual feature with captions, sidebars, and narrative transitions',
       'Pair each visual moment with one concise message',
       'Let product or content detail emerge after the immersive hero',
     ],
@@ -1006,15 +1097,15 @@ function productUiStyle(): CopyLedFallbackStyle {
   return {
     title: 'Working Surface',
     name: 'SaaS Product UI',
-    summary: 'The copy sounds operational and capability-driven, so this direction makes the interface, workflow, metrics, and repeated use cases the design language.',
+    summary: 'The copy sounds operational and capability-driven, so this direction uses interface proof, workflow excerpts, metrics, and repeated use cases as editorial evidence instead of a generic dashboard shell.',
     differentiators: [
-      'Product surface appears in the hero',
+      'Product surface appears as a narrated hero excerpt',
       'Workflow and metrics are visible before broad brand storytelling',
-      'Dense but organized modules support repeated scanning',
+      'Dense but organized modules are framed as proof inserts',
       'Utility and trust matter more than spectacle',
     ],
-    concept: (subject, context) => `A pragmatic product-led ${context} for ${subject}, built around interface proof, workflow clarity, and practical decision-making.`,
-    layout: 'Interface hero, metric strip, workflow steps, feature table, use-case modules, and conversion CTA tied to a practical action.',
+    concept: (subject, context) => `A pragmatic product-led ${context} for ${subject}, built around interface proof, workflow clarity, and practical decision-making with an editorial product-story rhythm.`,
+    layout: 'Editorial product spread with a credible interface excerpt as hero proof, margin metrics, chaptered workflow narrative, comparison table as an evidence insert, use-case sidebars, and conversion CTA tied to a practical action.',
     palette: {
       background: '#F6F8FA',
       text: '#101828',
@@ -1024,7 +1115,7 @@ function productUiStyle(): CopyLedFallbackStyle {
     },
     typography: 'Clean product sans for headings and body, compact mono for metrics, code, or system labels.',
     interactionMood: 'Capable, organized, efficient, and production-ready.',
-    components: ['product interface hero', 'metric strip', 'workflow stepper', 'feature table', 'use-case grid', 'practical CTA'],
+    components: ['product interface excerpt', 'margin metric strip', 'workflow chapter', 'evidence table', 'use-case sidebar', 'practical CTA'],
     cssVariables: [
       { name: '--bg', value: '#F6F8FA', purpose: 'Quiet product background' },
       { name: '--text', value: '#101828', purpose: 'Primary interface text' },
@@ -1033,13 +1124,14 @@ function productUiStyle(): CopyLedFallbackStyle {
       { name: '--accent', value: '#16A34A', purpose: 'Success, live, or progress indicators' },
     ],
     layoutRules: [
-      'Anchor the page with a credible product UI composition',
-      'Use tables, lists, and compact modules where they clarify comparison',
+      'Anchor the page with a credible product UI excerpt placed as editorial evidence',
+      'Use tables, lists, and compact modules where they clarify comparison, then frame them with captions and section context',
       'Place metrics near claims so proof and promise stay connected',
+      'Avoid making the homepage look like the app dashboard; show only the excerpts needed to support the story',
     ],
     componentRules: [
       'Use familiar controls, tabs, toggles, tables, and status pills',
-      'Keep repeated cards dense but aligned',
+      'Keep repeated cards dense but aligned and subordinate to the editorial reading path',
       'Make CTAs direct and task-based',
     ],
     responsiveRules: [
@@ -1051,7 +1143,7 @@ function productUiStyle(): CopyLedFallbackStyle {
       'Avoid turning it into a marketing hero with decorative dashboard fragments.',
       'Every UI fragment should demonstrate a real capability.',
     ],
-    imagePrompt: (subject, context) => `A SaaS product UI website design for ${subject}, ${context}, product interface hero, workflow modules, metrics, tables, clean product styling, blue and green accents.`,
+    imagePrompt: (subject, context) => `A SaaS product UI website design for ${subject}, ${context}, editorial product spread, product interface excerpt, workflow chapters, margin metrics, evidence table, clean product styling, blue and green accents.`,
   };
 }
 
@@ -1067,7 +1159,7 @@ function exposeRevealStyle(): CopyLedFallbackStyle {
       'The design feels transparent without becoming unfinished',
     ],
     concept: (subject, context) => `A reveal-based ${context} for ${subject}, showing the process, ingredients, proof, or construction logic as the main source of trust.`,
-    layout: 'Annotated hero, process timeline, layered proof section, materials or evidence grid, behind-the-scenes detail panel, and trust-focused CTA.',
+    layout: 'Annotated editorial hero, process timeline as a chaptered story, layered proof section, materials or evidence insert, behind-the-scenes detail panel, and trust-focused CTA.',
     palette: {
       background: '#F8F6EF',
       text: '#171717',
@@ -1087,6 +1179,7 @@ function exposeRevealStyle(): CopyLedFallbackStyle {
     ],
     layoutRules: [
       'Show the visitor what is usually hidden: steps, layers, materials, decisions, or evidence',
+      'Place annotations, timelines, and evidence as editorial callouts within a persuasive story',
       'Use annotation lines and numbered markers sparingly but consistently',
       'Balance exposed process with polished hierarchy so the site still feels intentional',
     ],
@@ -1120,7 +1213,7 @@ function retroNostalgicStyle(): CopyLedFallbackStyle {
       'Memory and playfulness without unreadable novelty',
     ],
     concept: (subject, context) => `A retro-inflected ${context} for ${subject}, using nostalgia as an emotional hook while preserving modern clarity and conversion flow.`,
-    layout: 'Bold nostalgic hero, stamp-like proof strip, chunky feature blocks, archive or catalog section, and bright CTA footer.',
+    layout: 'Bold nostalgic editorial hero, stamp-like proof strip, chunky feature blocks framed as catalog pages, archive story section, and bright CTA footer.',
     palette: {
       background: '#F5E7C8',
       text: '#241B16',
@@ -1140,6 +1233,7 @@ function retroNostalgicStyle(): CopyLedFallbackStyle {
     ],
     layoutRules: [
       'Use vintage-inspired section framing without sacrificing modern spacing',
+      'Structure nostalgia as an editorial catalog or feature story, not a wall of novelty cards',
       'Bring nostalgia into badges, labels, and color before over-styling body text',
       'Keep the conversion path obvious beneath the expressive surface',
     ],
@@ -1173,7 +1267,7 @@ function brutalistStyle(): CopyLedFallbackStyle {
       'A direct attitude that feels cultural rather than corporate',
     ],
     concept: (subject, context) => `A brutalist ${context} for ${subject}, turning urgency and attitude in the copy into hard-edged layout, raw structure, and sharp visual confidence.`,
-    layout: 'Huge blunt hero, split proof blocks, raw navigation strip, hard-border feature grid, manifesto section, and stark CTA close.',
+    layout: 'Huge blunt editorial hero, split proof blocks, raw navigation strip, hard-border feature spread, manifesto section, and stark CTA close.',
     palette: {
       background: '#F2F2EA',
       text: '#050505',
@@ -1193,6 +1287,7 @@ function brutalistStyle(): CopyLedFallbackStyle {
     ],
     layoutRules: [
       'Use hard section breaks, visible borders, and asymmetry',
+      'Make the page read like a sharp editorial manifesto with proof slabs and chapter breaks',
       'Let large type create tension and pace',
       'Keep content order direct even when the composition is raw',
     ],

@@ -2,8 +2,8 @@
   "identity": {
     "agentName": "kiterae_flat_design_agent",
     "displayName": "Kiterae Site Design Agent",
-    "description": "Turns a text brief or reference image into Direct Minimalist, Maximalist, and Copy-Led Style website directions with generated preview images and CSS/site guidance.",
-    "version": "1.2.0",
+    "description": "Turns a text brief or reference image into Direct Minimalist, Maximalist, and Copy-Led Style website directions with editorial content placement, generated preview images, and CSS/site guidance.",
+    "version": "1.3.0",
     "provider": {
       "organization": "kiterae"
     }
@@ -192,7 +192,7 @@
     {
       "id": "website_design_variants",
       "name": "Website Design Variants",
-      "description": "Creates Direct Minimalist, Maximalist, and Copy-Led Style website design languages from a text brief or image reference, then generates a preview image and CSS/site guidance for each.",
+      "description": "Creates Direct Minimalist, Maximalist, and Copy-Led Style website design languages from a text brief or image reference, then generates a preview image and CSS/site guidance for each with editorial content placement.",
       "examples": [
         "Design a website for an AI-native garden planning app using the three-direction model: direct minimalist, maximalist, and one copy-led style choice.",
         "Use the uploaded packaging image as visual direction for a landing page aimed at boutique retailers."
